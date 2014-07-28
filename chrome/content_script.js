@@ -22,7 +22,7 @@
  *  SOFTWARE.
  *
  */
- 
+// ID: abioncnjcacdmnichbdcjbanljjgjpgc
 var songleft;
 var allSongsId = [];
 var lastPlayedSongs = [];
@@ -30,15 +30,15 @@ var actionTable = {};
 var lastPlay;
 var forcePlay = false;
 var playingRandom = false;
+var followingList = [];
+var adminActions = {};
 
 // GroovesharkUtils
 var GU = {
- 'inBroadcast': function()
-    {
+    'inBroadcast': function() {
         return $('#bc-take-over-btn').hasClass('hide');
     },
- 'sendMsg': function(msg)
-    {
+    'sendMsg': function(msg) {
         var broadcast = GS.getCurrentBroadcast();
         if (broadcast === false)
             return;
@@ -46,79 +46,66 @@ var GU = {
         var maxMsgLength = 256; // the max number of caracters that can go in the gs chat
         var index = 0;
 
-
-        //msg = '[BOT]: ' + msg;
-        while ((Math.floor(msg.length / maxMsgLength) + (msg.length % maxMsgLength != 0)) >= ++index)
-        {
-            broadcast.sendChatMessage(msg.substr((index - 1) * maxMsgLength, maxMsgLength));            
+        while ((Math.floor(msg.length / maxMsgLength) + (msg.length % maxMsgLength != 0)) >= ++index) {
+            broadcast.sendChatMessage(msg.substr((index - 1) * maxMsgLength, maxMsgLength));
         }
     },
- 'songInQueue': function()
-    {
+    'songInQueue': function() {
         return $('#queue-num-total').text() - $('#queue-num').text();
     },
- 'removeMsg': function()
-    {
+    'removeMsg': function() {
         $('.chat-message').addClass('parsed');
     },
- 'openSidePanel': function()
-    {
-         if ($('.icon-sidebar-open-m-gray')[0])
+    'openSidePanel': function() {
+        if ($('.icon-sidebar-open-m-gray')[0])
             $('.icon-sidebar-open-m-gray').click()
     },
- 'renameBroadcast': function(bdcName)
-    {
+    'renameBroadcast': function(bdcName) {
         var attributes = GS.getCurrentBroadcast().attributes;
         if (attributes == undefined)
             return;
         var maxDescriptionLength = 145;
-    
+
         var defName = attributes.Description;
-        defName = defName.substr(0, defName.indexOf(GUParams.prefixRename)) + GUParams.prefixRename + ' [EGSA Bot] ';
-        if (playingRandom)
-        {
+        defName = defName.substr(0, defName.indexOf(GUParams.prefixRename)) + GUParams.prefixRename + ' [EGSA-tan] ';
+        if (playingRandom) {
             defName += 'Playing from collection';
-        }
-        else
-        {
-            defName += GU.songInQueue() + ' song' + (GU.songInQueue() != 1 ? 's' : '') +' left';
+        } else {
+            defName += GU.songInQueue() + ' song' + (GU.songInQueue() != 1 ? 's' : '') + ' left';
         }
         if (bdcName == null)
             bdcName = defName;
-        GS.Services.SWF.changeBroadcastInfo(GS.getCurrentBroadcastID(), {'Description': bdcName.substr(0, maxDescriptionLength)});
+        GS.Services.SWF.changeBroadcastInfo(GS.getCurrentBroadcastID(), {
+            'Description': bdcName.substr(0, maxDescriptionLength)
+        });
     },
- 'getPlaylistNextSongs': function()
-    {
+    'getPlaylistNextSongs': function() {
         var songs = GS.Services.SWF.getCurrentQueue().songs;
         var index = GS.Services.SWF.getCurrentQueue().activeSong.queueSongID;
-        while (songs[0] != null && songs[0].queueSongID <= index)
-        {
+        while (songs[0] != null && songs[0].queueSongID <= index) {
             songs.shift();
         }
         return songs;
     },
- 'previewSongs': function(msg, parameter)
-    {
+    'previewSongs': function(msg, parameter) {
         var nbr = parseInt(parameter);
         if (nbr <= 0 || isNaN(nbr))
             nbr = GUParams.defaultSongPreview;
         if (nbr > GUParams.maxSongPreview)
             nbr = GUParams.maxSongPreview;
         songs = GU.getPlaylistNextSongs();
-        
+
         var i = -1;
         var string = '';
-        while (++i <= nbr)
-        {
+        while (++i <= nbr) {
             var curr = songs[i];
             if (curr == null)
                 break;
-            string = string + '#' +i + ': \"' + curr.SongName + '\"" By: \"' + curr.ArtistName + "\"" + GUParams.separator;
+            string = string + '#' + i + ': \"' + curr.SongName + '\"" By: \"' + curr.ArtistName + "\"" + GUParams.separator;
         }
         GU.sendMsg('Next songs are: ' + string.substring(0, string.length - GUParams.separator.length));
     },
- 'showPlaylist': function(message, stringFilter)
-    {
+    'showPlaylist': function(message, stringFilter) {
         GU.openSidePanel();
         var string = '';
         var regex = RegExp(stringFilter, 'i');
@@ -133,34 +120,26 @@ var GU = {
             string = 'Playlist matched:' + string.substring(0, string.length - GUParams.separator.length);
         GU.sendMsg(string);
     },
- 'playPlaylist': function(message, playlistId)
-    {
+    'playPlaylist': function(message, playlistId) {
         GU.openSidePanel();
         var playlistToPlay = $('#sidebar-playlists-grid').find('.sidebar-playlist')[playlistId];
-        if (playlistToPlay == null)
-        {
+        if (playlistToPlay == null) {
             GU.sendMsg('Cannot find playlist: ' + playlistId);
-        }
-        else
-        {
+        } else {
             var playlistId = $(playlistToPlay).children(0).attr('data-playlist-id');
             Grooveshark.addPlaylistByID(playlistId);
             GU.sendMsg('Playlist \'' + $(playlistToPlay).find('.name').text() + '\' added to the queue.');
         }
     },
- 'playRandomSong': function()
-    {
+    'playRandomSong': function() {
         playingRandom = true;
         var nextSong = allSongsId[Math.floor(Math.random() * allSongsId.length)];
-        if (nextSong != undefined)
-        {
+        if (nextSong != undefined) {
             var nextSongIndex = lastPlayedSongs.indexOf(nextSong);
             var maxTry = 5;
-            while (nextSongIndex != -1 && maxTry-- > 0)
-            {
+            while (nextSongIndex != -1 && maxTry-- > 0) {
                 var tmpSong = allSongsId[Math.floor(Math.random() * allSongsId.length)];
-                if (tmpSong != undefined)
-                {
+                if (tmpSong != undefined) {
                     var tmpIndex = lastPlayedSongs.indexOf(tmpSong);
                     if (tmpIndex < nextSongIndex)
                         nextSong = tmpSong;
@@ -169,27 +148,22 @@ var GU = {
             Grooveshark.addSongsByID([nextSong]);
         }
     },
- 'skip': function()
-    {
+    'skip': function() {
         Grooveshark.removeCurrentSongFromQueue();
     },
- 'addToCollection': function()
-    {
+    'addToCollection': function() {
         Grooveshark.addCurrentSongToLibrary();
         GU.sendMsg('Song added to the favorite.');
     },
- 'removeFromCollection': function()
-    {
+    'removeFromCollection': function() {
         var currSong = Grooveshark.getCurrentSongStatus().song
-        GS.Services.API.userRemoveSongsFromLibrary(GS.getLoggedInUserID(), currSong.songID, currSong.albumID, currSong.artistID).then(function(){
+        GS.Services.API.userRemoveSongsFromLibrary(GS.getLoggedInUserID(), currSong.songID, currSong.albumID, currSong.artistID).then(function() {
             GU.sendMsg('Song removed from the favorite.');
         });
     },
- 'deletePlayedSong': function()
-    {
+    'deletePlayedSong': function() {
         var previousSong;
-        while (true)
-        {
+        while (true) {
             previousSong = GS.Services.SWF.getCurrentQueue().previousSong;
             if (previousSong != null)
                 GS.Services.SWF.removeSongs([previousSong.queueSongID]);
@@ -197,29 +171,34 @@ var GU = {
                 break;
         }
     },
- 'removeNextSong': function()
-    {
+    'removeNextSong': function() {
         var nextSong = GS.Services.SWF.getCurrentQueue().nextSong;
-        if (nextSong != null)
-        {
+        if (nextSong != null) {
             GS.Services.SWF.removeSongs([nextSong.queueSongID]);
         }
     },
- 'removeLastSong': function()
-    {
+    'removeLastSong': function(message, numberStr) {
         var songs = GS.Services.SWF.getCurrentQueue().songs;
-        var id = songs[songs.length - 1].queueSongID;
-        if (id != GS.Services.SWF.getCurrentQueue().activeSong.queueSongID)
-        {
-            GS.Services.SWF.removeSongs([id]);
+        var allID = [];
+        var number = Math.floor(Number(numberStr));
+        if (isNaN(number) || number < 1)
+            number = 1;
+        while (--number >= 0) {
+            if (songs.length - 1 - number >= 0) {
+                var id = songs[songs.length - 1 - number].queueSongID;
+                if (id != GS.Services.SWF.getCurrentQueue().activeSong.queueSongID)
+                    allID.push(id);
+            }
+        }
+        if (allID.length > 0) {
+            GS.Services.SWF.removeSongs(allID);
         }
     },
- 'getMatchedSongsList': function(stringFilter)
-    {
+    'getMatchedSongsList': function(stringFilter) {
         var regex = RegExp(stringFilter, 'i');
         var songs = GU.getPlaylistNextSongs();
         var listToRemove = [];
-        songs.forEach(function(element){
+        songs.forEach(function(element) {
             if (regex.test(element.AlbumName) ||
                 // regex.test(element.ArtistName) ||
                 regex.test(element.SongName))
@@ -227,150 +206,149 @@ var GU = {
         });
         return listToRemove;
     },
- 'previewRemoveByName': function(message, stringFilter)
-    {
+    'previewRemoveByName': function(message, stringFilter) {
         var listToRemove = GU.getMatchedSongsList(stringFilter);
         if (listToRemove.length > 10 || listToRemove.length == 0)
             GU.sendMsg('' + listToRemove.length + 'Songs matched.');
-        else
-        {
+        else {
             var string = 'Song matched: ';
             listToRemove.forEach(function(element) {
                 string = string + element.SongName + ' ~ From: ' + element.AlbumName + GUParams.separator;
             });
-            GU.sendMsg(string.substring(0, string.length - GUParams.separator.length));            
+            GU.sendMsg(string.substring(0, string.length - GUParams.separator.length));
         }
     },
- 'removeByName': function(message, stringFilter)
-    {
-        //adding safeguard so that '/removeByName -all' must be typed to clear the queue.
-        if (stringFilter == undefined)
-        {
+    'removeByName': function(message, stringFilter) {
+        //adding safeguard so that '/removeByName allSongs' must be typed to clear the queue.
+        if (stringFilter == undefined) {
             GU.sendMsg("No songs were removed. Use \"/removeByName allSongs \" to clear the queue.");
             return;
         }
-        if (stringFilter == "allSongs")
-        {
-            stringFilter = "";                
+        if (stringFilter == "allSongs") {
+            stringFilter = "";
         }
-        //else
-        //{
-            var listToRemove = GU.getMatchedSongsList(stringFilter);
-            var idToRemove = [];
-            listToRemove.forEach(function (element)
-            {
-                idToRemove.push(element.queueSongID);
-            });
-            GS.Services.SWF.removeSongs(idToRemove);
-            GU.sendMsg('Removed ' + idToRemove.length + ' songs.');
-        //}
+        var listToRemove = GU.getMatchedSongsList(stringFilter);
+        var idToRemove = [];
+        listToRemove.forEach(function(element) {
+            idToRemove.push(element.queueSongID);
+        });
+        GS.Services.SWF.removeSongs(idToRemove);
+        GU.sendMsg('Removed ' + idToRemove.length + ' songs.');
     },
- 'fetchByName': function(message, stringFilter)
-    {
+    'fetchByName': function(message, stringFilter) {
         var songToPlay = GU.getMatchedSongsList(stringFilter);
-        if (songToPlay.length > 0)
+        if (songToPlay.length > 0) {
             GS.Services.SWF.moveSongsTo([songToPlay[0].queueSongID], 1, true);
+            var sName = songToPlay[0].SongName;
+            GU.sendMsg("Fetched \"" + sName +"\".");
+        } else {
+            GU.sendMsg("Unable to find song title matching: \"" + stringFilter + "\".");
+        }
     },
- 'shuffle': function()
-    {
+    'fetchLast': function(message, stringFilter) {
+        var songList = GS.Services.SWF.getCurrentQueue().songs;
+        if (songList.length > 2)
+            GS.Services.SWF.moveSongsTo([songList[songList.length - 1].queueSongID], 1, true);
+    },
+    'shuffle': function() {
         $('.shuffle').click();
         GU.sendMsg('The queue has been shuffled!');
     },
- 'guestCheck': function(current)
-    {
-        if (!current.hasClass('chat-vip'))
-        {
+    'isGuesting': function(userid) {
+        return GS.getCurrentBroadcast().attributes.vipUsers.some(function(elem) {
+            return elem.userID == userid;
+        });
+    },
+    'guestCheck': function(userid) {
+        if (!GU.isGuesting(userid)) {
             GU.sendMsg('Only Guests can use that feature, sorry!');
             return false;
         }
-        return true;    
+        return true;
     },
- 'inListCheck': function(current, list)
-    {
-        console.log(current.find('a.favorite').attr('data-user-id'));
-        return list.split(',').indexOf(current.find('a.favorite').attr('data-user-id')) != -1;
+    'inListCheck': function(userid, list) {
+        return list.split(',').indexOf("" + userid) != -1;
     },
- 'followerCheck': function(current)
-    {
-        return (current.find('a.favorite').hasClass('btn-success'));
+    'followerCheck': function(userid) {
+        return followingList.indexOf(userid) != -1;
     },
- 'strictWhiteListCheck': function(current)
-    {
-        if (GU.inListCheck(current, GUParams.whitelist))
+    'strictWhiteListCheck': function(userid) {
+        if (GU.inListCheck(userid, GUParams.whitelist))
             return true;
         GU.sendMsg('Only user that are explicitly in the whitelist can use this feature, sorry!');
         return false;
     },
- 'whiteListCheck': function(current)
-    {
-        if (GU.inListCheck(current, GUParams.whitelist)) // user in whitelist
+    'whiteListCheck': function(userid) {
+        if (GU.inListCheck(userid, GUParams.whitelist)) // user in whitelist
         {
             return true;
-        }
-        else if (GUParams.whitelistIncludesFollowing && !GU.inListCheck(current, GUParams.blacklist) && GU.followerCheck(current))
-        {
+        } else if (GUParams.whitelistIncludesFollowing.toString() === 'true' && !GU.inListCheck(userid, GUParams.blacklist) && GU.followerCheck(userid)) {
             return true;
         }
-        GU.sendMsg('Only ' + GUParams.whiteListName + ' can use that feature, sorry!');        
+        //GU.sendMsg('Only ' + GUParams.whiteListName + ' can use that feature, sorry!');
         return false;
     },
- 'ownerCheck': function(current)
-    {
-        if (!current.hasClass('chat-owner'))
-        {
+    'guestOrWhite': function(userid) {
+        return (GU.isGuesting(userid) || GU.whiteListCheck(userid));
+    },
+    'ownerCheck': function(userid) {
+        if (userid != GS.getCurrentBroadcast().attributes.UserID) {
             GU.sendMsg('Only the Master can use that feature, sorry!');
             return false;
         }
-        return true;    
+        return true;
     },
- 'doParseMessage': function(current)
-    {
-        var string = current.find('.message').text();
-        var regexp = RegExp('^/([a-zA-Z]*)([ ]+([a-zA-Z0-9 ]+))?$');
-        var regResult = regexp.exec(string);
-        if (regResult != null)
-        {
-            var currentAction = actionTable[regResult[1]];
-            if (currentAction instanceof Array && currentAction[0].every(function(element){return element(current);}))
-                currentAction[1](current, regResult[3]);
+    'isListening': function(user){
+        if (isNaN(user)) {
+            return GS.getCurrentBroadcast().attributes.listeners.models.some(function(elem) {
+                return elem.attributes.Name == user;
+            });
+        } else {
+            return GS.getCurrentBroadcast().attributes.listeners.models.some(function(elem) {
+                return elem.attributes.UserID == user;
+            });
         }
     },
- 'parseMessages': function()
-    {
-        $('.chat-message:not(.parsed)').each(function() {
-            $(this).addClass('parsed');
-            GU.doParseMessage($(this));
-        });
+    'doParseMessage': function(current) {
+        var string = current.data;
+        var regexp = RegExp('^/([A-z0-9]*)([ ]+([A-z0-9 ,-?\!.]+))?$');
+        var regResult = regexp.exec(string);
+        if (regResult != null) {
+            var currentAction = actionTable[regResult[1]];
+            if (currentAction instanceof Array && currentAction[0].every(function(element) {
+                return element(current.userID);
+            }))
+                currentAction[1](current, regResult[3]);
+            if (GU.guestOrWhite(current.userID)) {
+                var currentAction = adminActions[regResult[1]];
+                if (currentAction instanceof Array && currentAction[0].every(function(element) {
+                    return element(current.userID);
+                }))
+                    currentAction[1](current, regResult[3]);
+            }
+        }
     },
- 'forcePlay': function()
-    {
-        if (Grooveshark.getCurrentSongStatus().status != 'playing')
-        {
-            if (new Date() - lastPlay > 4000 && !forcePlay)
-            {
+    'forcePlay': function() {
+        if (Grooveshark.getCurrentSongStatus().status != 'playing') {
+            if (new Date() - lastPlay > 4000 && !forcePlay) {
                 forcePlay = true;
                 Grooveshark.play();
             }
-            if (new Date() - lastPlay > 8000)
-            {
+            if (new Date() - lastPlay > 8000) {
                 Grooveshark.removeCurrentSongFromQueue();
                 forcePlay = false;
                 lastPlay = new Date();
             }
-        }
-        else
-        {
+        } else {
             forcePlay = false;
             lastPlay = new Date();
         }
     },
- 'addSongToHistory': function()
-    {
+    'addSongToHistory': function() {
         if (Grooveshark.getCurrentSongStatus().song == null)
             return;
         var currSongID = Grooveshark.getCurrentSongStatus().song.songID;
-        if (lastPlayedSongs.length == 0 || lastPlayedSongs[lastPlayedSongs.length - 1] != currSongID)
-        {
+        if (lastPlayedSongs.length == 0 || lastPlayedSongs[lastPlayedSongs.length - 1] != currSongID) {
             var posToRemove = lastPlayedSongs.indexOf(currSongID);
             // Remove the song in the list
             if (posToRemove != -1)
@@ -381,10 +359,8 @@ var GU = {
                 lastPlayedSongs.shift();
         }
     },
- 'callback': function()
-    {
-        if (songleft != GU.songInQueue())
-        {
+    'callback': function() {
+        if (songleft != GU.songInQueue()) {
             songleft = GU.songInQueue();
             if (songleft >= 2)
                 playingRandom = false;
@@ -393,52 +369,71 @@ var GU = {
         GU.addSongToHistory();
         if (songleft < 1)
             GU.playRandomSong();
-        GU.parseMessages();
         GU.deletePlayedSong();
         GU.forcePlay();
         /*
             Idea for later:
-            To remove this callback, we can extends both GS.Services.SWF.handleBroadcastChat and GS.Services.SWF.queueChange.
+            To remove this callback, we can extends GS.Services.SWF.queueChange.
         */
     },
- 'guest': function(current)
-    {
-        var userID = current.find('a.favorite').attr('data-user-id');
-        
+    'guest': function(current) {
+        var userID = current.userID;
+
         if (GS.getCurrentBroadcast().getPermissionsForUserID(userID) != undefined) // is guest
             GS.Services.SWF.broadcastRemoveVIPUser(userID);
         else
-            GS.Services.SWF.broadcastAddVIPUser(userID,0,63); // 63 seems to be the permission mask
+            GS.Services.SWF.broadcastAddVIPUser(userID, 0, 63); // 63 seems to be the permission mask
     },
- 'ping': function()
-    {
+    'makeGuest': function(current, guestID) {
+        guestID = Number(guestID);
+        if (!isNaN(guestID))
+            GS.Services.SWF.broadcastAddVIPUser(guestID, 0, 63); // 63 seems to be the permission mask
+    },
+    'ping': function(current) {
+        //GU.sendMsg('Ping resp! Oh, and your user ID is ' + current.userID + '!');
         GU.sendMsg('Pong!');
     },
- 'about': function()
-    {
-        GU.sendMsg('This broadcast is currently running "Grooveshark Broadcast Bot" v' + GUParams.version + ', created by grooveshark.com/uman42 . Extensions: goo.gl/v4YW7b (google), goo.gl/aAX4dr (firefox), goo.gl/gR3YfW (source code)');
+    'about': function() {
+        GU.sendMsg('This broadcast is currently running "EGSA Broadcast Bot" v' + GUParams.version + ', created by grooveshark.com/karb0n13 . GitHub: http://goo.gl/UPGkO5 Forked From: http://goo.gl/vWM41J');
     },
- 'help': function(message, parameter)
-    {
-        if (parameter != undefined)
-        {
+    'help': function(message, parameter) {
+        if (parameter != undefined) {
             var currentAction = actionTable[parameter];
-            if (currentAction instanceof Array)
-            {
+            if (currentAction instanceof Array) {
                 GU.sendMsg('Help: /' + parameter + ' ' + currentAction[2]);
                 return;
             }
         }
-        var helpMsg = 'Commands:';
-        Object.keys(actionTable).forEach(function (actionName) {
+        var helpMsg = 'Command available:';
+        Object.keys(actionTable).forEach(function(actionName) {
             helpMsg = helpMsg + ' ' + actionName;
         });
-        helpMsg = helpMsg + ' \| /help [command name] for details.';
+        helpMsg = helpMsg + '. Type /help [command name] for in depth help.';
         GU.sendMsg(helpMsg);
+
+        //if user is a guest then show these:
+        var isAdmin = GU.guestOrWhite(message.userID);
+        if (isAdmin) {
+            helpMsg = 'Admin commands:'
+            if (parameter != undefined) {
+                var currentAction = adminActions[parameter];
+                if (currentAction instanceof Array) {
+                    GU.sendMsg('Help: /' + parameter + ' ' + currentAction[2]);
+                    return;
+                }
+            }
+            Object.keys(adminActions).forEach(function(actionName) {
+                helpMsg = helpMsg + ' ' + actionName;
+            });
+            GU.sendMsg(helpMsg);
+        }
     },
- 'startBroadcasting': function(bc)
-    {
-        var properties = { 'Description': bc.Description, 'Name': bc.Name, 'Tag': bc.Tag };
+    'startBroadcasting': function(bc) {
+        var properties = {
+            'Description': bc.Description,
+            'Name': bc.Name,
+            'Tag': bc.Tag
+        };
         if (GS.getCurrentBroadcast() === false) {
             GS.Services.SWF.startBroadcast(properties);
             setTimeout(GU.startBroadcasting, 3000, bc);
@@ -448,100 +443,138 @@ var GU = {
         setTimeout(function() {
             GU.sendMsg(GUParams.welcomeMessage);
         }, 1000);
+        Grooveshark.setVolume(0); //mute the broadcast.
         // Remove all the messages in chat
         GU.removeMsg();
         GU.openSidePanel();
-        GS.Services.API.userGetSongIDsInLibrary().then(function (result){
+        GS.Services.API.userGetSongIDsInLibrary().then(function(result) {
             allSongsId = result.SongIDs;
         });
-        if ($('#lightbox-close').length == 1)
-        {
+        if ($('#lightbox-close').length == 1) {
             $('#lightbox-close').click();
         }
         lastPlay = new Date();
         // Check if there are msg in the chat, and process them.
         setInterval(GU.callback, 1000);
+
+        // Overload handlechat
+        var handleBroadcastSaved = GS.Services.SWF.handleBroadcastChat;
+        GS.Services.SWF.handleBroadcastChat = function(e, t) {
+            handleBroadcastSaved(e, t);
+            GU.doParseMessage(t);
+        };
+
     },
- 'broadcast': function()
-    {
+    'updateFollowing': function() {
+        GS.Services.API.userGetFollowersFollowing().then(
+            function(alluser) {
+                followingList = [];
+                alluser.forEach(function(single) {
+                    if (single.IsFavorite === '1') {
+                        followingList.push(parseInt(single.UserID));
+                    }
+                });
+            });
+    },
+    'broadcast': function() {
         if (GS.getLoggedInUserID() <= 0)
             alert('Cannot login!');
-        else
-        {
+        else {
+            GU.updateFollowing();
             GS.Services.API.getUserLastBroadcast().then(function(bc) {
-                GS.Services.SWF.ready.then(function()
-                {
+                GS.Services.SWF.ready.then(function() {
                     GS.Services.SWF.resumeBroadcast(bc.BroadcastID);
                     setTimeout(GU.startBroadcasting, 3000, bc);
                 });
             });
         }
     },
- 'fetchLast': function(message, parameter) //@author: Flumble
+/**********************
+    New Code Section
+***********************/
+    'unGuest': function(current, parameter) {
+        if (parameter == undefined) {
+            return;
+        }
+        if (parameter.toUpperCase() == 'ALL') {
+            GS.getCurrentBroadcast().attributes.publishersUsersIDs.forEach(function(guestID) {
+                GS.Services.SWF.broadcastRemoveVIPUser(guestID);
+            });
+        } else {
+            if (isNaN(parameter)){
+                GU.sendMsg(parameter.toString() + " is not a valid guestID.")
+            } else {
+            if (!GU.isGuesting(parameter)) {
+                GS.Models.User.get(parameter).then(function(u){
+                    uName = u.get('Name');
+                    if (uName == undefined){
+                        GU.sendMsg(parameter.toString() + " is not a valid ID.")
+                    }
+                    GU.sendMsg(uName + ' is not a Guest, sorry!');
+                })
+                return false;
+            } else {
+                GS.Services.SWF.broadcastRemoveVIPUser(parameter);
+            }                
+            }
+        }
+    },
+    'fetchLast': function(message, parameter) //@author: Flumble
     {
-        var count     = 1;
-        var queue     = GS.Services.SWF.getCurrentQueue();
-        var nextIndex = queue.activeSong.index+1;
+        var count = 1;
+        var queue = GS.Services.SWF.getCurrentQueue();
+        var nextIndex = queue.activeSong.index + 1;
 
         if (parameter && parseInt(parameter) > 0)
             count = parseInt(parameter);
 
-        if (nextIndex < queue.songs.length-count)
-        {
+        if (nextIndex < queue.songs.length - count) {
             var lastSongs = queue.songs.slice(-count);
-            lastSongs = lastSongs.map(function(song) { return song.queueSongID; }); //'of course' GS wants the queueID instead of a reference
+            lastSongs = lastSongs.map(function(song) {
+                return song.queueSongID;
+            }); //'of course' GS wants the queueID instead of a reference
 
             GS.Services.SWF.moveSongsTo(lastSongs, nextIndex, true);
-            GU.sendMsg(count.toString() + " song"+ ((count > 1) ? "s" : "") +" fetched");
-        }
-        else
-        {
+            GU.sendMsg(count.toString() + " song" + ((count > 1) ? "s" : "") + " fetched");
+        } else {
             //notify the broadcaster that too many songs were selected to play next
-            if (nextIndex == queue.songs.length-count)
-                GU.sendMsg((count == 1)? "That IS the next song, silly" : "Those ARE the next songs, silly");
+            if (nextIndex == queue.songs.length - count)
+                GU.sendMsg((count == 1) ? "That IS the next song, silly" : "Those ARE the next songs, silly");
             else
                 GU.sendMsg("Too many songs selected");
         }
     },
- 'getPlaylist': function(message, parameter)
-    {
+    'getPlaylist': function(message, parameter) {
         var playlistID = parameter;
         var playlistName = "";
         var playlistUser = "";
         var playlistUserId = "";
         var playlistCount = "";
         var msgUpdate = "";
-        GS.Models.Playlist.get(playlistID).then(function(p)
-        {
-            //not run if does not exist
-            playlistName = p.get('PlaylistName');
-            //console.log( p.get('PlaylistName'));
-            playlistCount = p.get('SongCount');
-            //console.log( p.get('SongCount'));
-            playlistUser = p.get('UserName');
-            //console.log( p.get('UserName'));
-            playlistUserId = p.get('UserID');
-            //console.log( p.get('UserID'));
-            msgUpdate = "Playlist: \"" + playlistName + "\" By: \"" + playlistUser + "\", " + playlistCount + " songs added."
-            Grooveshark.addPlaylistByID(playlistID);
-        }, // if it fails...
-        function() {
-            msgUpdate = "Unable to find a playlist with ID: \"" + playlistID + "\"."
-        })
-        .always(function() { 
-            GU.sendMsg(msgUpdate)
-        });
+        GS.Models.Playlist.get(playlistID).then(function(p) {
+                //not run if does not exist
+                playlistName = p.get('PlaylistName');
+                playlistCount = p.get('SongCount');
+                playlistUser = p.get('UserName');
+                playlistUserId = p.get('UserID');
+                msgUpdate = "Playlist: \"" + playlistName + "\" By: \"" + playlistUser + "\", " + playlistCount + " songs added."
+                Grooveshark.addPlaylistByID(playlistID);
+            }, // if it fails...
+            function() {
+                msgUpdate = "Unable to find a playlist with ID: \"" + playlistID + "\"."
+            })
+            .always(function() {
+                GU.sendMsg(msgUpdate)
+            });
     },
- 'rules': function() //Original Author: davpat, modified to prevent floods.
+    'rules': function() //Original Author: davpat, modified to prevent floods.
     {
         var ruleslist = GUParams.rules.split(',');
         var msgDelay = 0;
         var loopTick = 0;
         var msg = "";
-        for (i=0;i<ruleslist.length;i++)
-        {
-            if(ruleslist[i]!="")
-            {
+        for (i = 0; i < ruleslist.length; i++) {
+            if (ruleslist[i] != "") {
                 msg = ruleslist[i];
                 msgDelay = loopTick * 1000;
                 setTimeout(GU.sendMsg, msgDelay, msg);
@@ -549,66 +582,300 @@ var GU = {
             }
         }
     },
-'roll' : function(current, parameter)
+    'roll': function(current, parameter) // Author: Deku
     {
-        var userName = current.find('a.user-name.open-profile-card').html();
+        var uName = "";
+        var uID = current.userID;
+        GS.Models.User.get(uID).then(function(u) {
+            uName = u.get('Name');
+        })
         var min = 1;
         var max = 100;
 
-        if (parameter != undefined) {
-            parameter = parameter.split(" ");
-            max = parseInt(parameter[0]) ? parameter[0] : 100;
+        if (parameter == undefined) {
+            parameter = "100"; // If no parameter is given, roll from 1 to 100
+        }
+        if (isNaN(parseInt(parameter))) {
+            GU.sendMsg("How do you expect me to roll " + parameter + "?");
+            return;
+        } else {
+            var number = parseInt(parameter);
+            max = number;
+            if (number > 2 && number < 10001) {
+                var roll = Math.floor(Math.random() * max) + min;
+                GU.sendMsg("[Roll: " + min + " - " + max + " ] EGSA-tan summons a magical dice. " 
+                    + uName + " throws it and gets a " + roll 
+                    + (roll > 9000 ? ". It's over 9000!" : "."));
+            } else {
+                // 0 or negative number
+                if (number <= 0) {
+                    GU.sendMsg("I am sorry, but it is impossible to create an object with fewer than 2 sides.");
+                }
+                // 1 gets a message ...
+                if (number == 1) {
+                    GU.sendMsg("A one sided dice? Really? ok....");
+                    GU.sendMsg("[Roll] " + uName + " rolled a 1.. are you happy now?");
+                }
+                // For 2 sides we use a coin
+                if (number == 2) {
+                    var flip = Math.floor(Math.random() * max) + min;
+                    var coin = "";
+                    switch (flip) {
+                        case 1:
+                            coin = "Heads";
+                            break;
+                        case 2:
+                            coin = "Tails";
+                            break;
+                    }
+                    GU.sendMsg("[Roll] EGSA-tan flips a coin. The coin lands on " + coin + "!");
+                }
+                // Avoid using big number, because it gets out of the chat window
+                if (number >= 10001) {
+                    GU.sendMsg("I am sorry, I don't have enough power to summon a " + number + " sided dice.");
+                }
+            }
+        }
+    },
+    'fact': function() {
+        var textHTTP;
+        var textFile = '/data/facts.txt';
+        textHTTP = new XMLHttpRequest();
+        textHTTP.onreadystatechange=function(){
+            if (textHTTP.readyState==4 && textHTTP.status==200){
+                //console.log(textHTTP.responseText);
+                var fileContentLines = textHTTP.responseText.split('\n');
+                    var randomLineIndex = Math.floor((Math.random() * fileContentLines.length) + 1);
+                    var randomLine = fileContentLines[randomLineIndex];
+                    GU.sendMsg(randomLine);
+            }
+        }
+        textHTTP.open('GET', 'chrome-extension://' + GUParams.extensionId + textFile, true);
+        textHTTP.send();
+    },
+    'whoamI': function(current){
+        var uName = GU.getUserName(current.userID);
+        GU.sendMsg('You are:' + uName + '. Your ID is: ' + current.userID + '.');
+    },
+    'getUserName': function(uID){
+        var uName = '';
+        GS.Models.User.get(uID).then(function(u){
+            uName = u.get('Name');
+        })
+        return uName;
+    },
+    'ask': function(current, parameter) {
+        var rng = 0;
+        var uName = GU.getUserName(current.userID);
+        var respText = '';
+        if (parameter == undefined){
+            return;
+        }
+        var answers = [
+            'Concentrate and ask again',
+            'Hell no.',
+            'Yes',
+            'As I see it, yes',
+            'Signs point to yes',
+            'It is decidedly so',
+            'Very doubtful',
+            'Cannot predict now',
+            'All signs point to me not giving a chainsaw.',
+            'Ask the Internet.',
+            'Without a doubt',
+            'Ask your mom.',
+            'Yes definitely',
+            'Outlook good',
+            'YES! Definitely. maybe...',
+            'Don\'t count on it',
+            'My reply is no',
+            'The voices tell me to tell you \"Yes.\" They also say that I should gouge out your eyes with my nose…',
+            'Outlook not so good',
+            'Most likely',
+            'You may rely on it',
+            'Dafuq?',
+            'It is certain',
+            'No',
+            'LOL',
+            'If I told you, I\'d have to kill you.',
+            'Ask again later',
+            '404 Error',
+            'Sorry, I wasn\'t listening.',
+            'Reply hazy try again',
+            'Please seek professional help.',
+            'IDGAC',
+            'Do you really need to ask?',
+            'My sources say no',
+            'Sadly, yes.',
+            'Better not tell you now',
+            'Not in a million years'
+        ]
+        if (rng == 0){
+            var c = 0
+            rng = Math.floor((Math.random() * 100) + 1);
+            while ((rng > (answers.length + 1)) || (c == 10)) {
+                rng = Math.floor((Math.random() * 100) + 1);
+                c = c++;
+            }
+            if (rng > (answers.length + 1)) {
+                rng = Math.floor((Math.random() * (answers.length)) + 1);
+            }
+        }
+        respText = '@' + uName + ", " + answers[rng];
+        GU.sendMsg(respText);
+    },
+    'cast': function(current, parameter) {
+        if (parameter == undefined) {
+            GU.sendMsg('Puff!! Nothing happened.');
+            return;
         }
 
-        var roll = Math.floor(Math.random() * (max - min)) + min;
+        var caster = GU.getUserName(current.userID);
+        parameter = parameter.split(' ');
+        var toCast = parameter[0];
+        var target = parameter[1];
 
-        GU.sendMsg("[Roll] EGSA-tan summons a magical dice with numbers from " + min + " to " + max + " ...");
-        GU.sendMsg("[Roll] " + userName + " throws the magical dice and gets a " + roll);
-    }
+        var spells = {
+            'frostbolt' : {
+                'name': 'Frostbolt',
+                'minDmg': 40,
+                'maxDmg': 50
+            },
+            'fireball': {
+                'name': 'Fireball',
+                'minDmg': 30,
+                'maxDmg': 70
+            },
+            'dongerstrike': {
+                'name': 'Donger Strike',
+                'minDmg': 30,
+                'maxDmg': 90
+            }
+        }
+
+        var castedSpell = spells[toCast];
+        if (castedSpell == undefined) {
+            GU.sendMsg('Spell not found. Are you sure that you know magic?');
+            return;
+        }
+
+        var damageDone = Math.floor(Math.random() * (castedSpell['maxDmg'] - castedSpell['minDmg'])) + castedSpell['minDmg'];
+        var isCrit = Math.random() > 0.9; // 10% crit chance
+
+        if (isCrit) {
+            damageDone *= 2;
+        }
+
+        if (target == undefined || target == caster) {
+            GU.sendMsg(caster + ' tries to cast ' + castedSpell['name'] + ', but the spell fails and lands on himself, dealing '+ damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' REKT!' : ''));
+        } else {
+            if (GU.isListening(target)){
+                GU.sendMsg(caster +' casts ' + castedSpell['name'] + ' over ' + target + ' dealing ' + damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' Overkill!' : ''));
+            } else {
+                GU.sendMsg(caster +' casts ' + castedSpell['name'] + ' over ... wait ... where is ' + target + '? (Help: The user must be in chat and the name must be written exactly.)');
+            }
+        }
+    } 
 };
-
+adminActions = {
+    'guest': [
+        [GU.inBroadcast, GU.guestOrWhite], GU.guest, '- Toogle your guest status.'
+    ],
+    'makeGuest': [
+        [GU.inBroadcast, GU.strictWhiteListCheck], GU.makeGuest, 'USERID - Force-guest a user with its ID.'
+    ],
+    'unGuest': [
+        [GU.inBroadcast, GU.strictWhiteListCheck], GU.unGuest, 'USERID - Force-unguest a user with its ID.'
+    ],
+    'addToCollection': [
+        [GU.inBroadcast, GU.strictWhiteListCheck], GU.addToCollection, '- Add this song to the collection.'
+    ],
+    'removeFromCollection': [
+        [GU.inBroadcast, GU.strictWhiteListCheck], GU.removeFromCollection, '- Remove this song from the collection.'
+    ],
+        'removeNext': [
+        [GU.inBroadcast, GU.guestCheck], GU.removeNextSong, '- Remove the next song in the queue.'
+    ],
+    'removeLast': [
+        [GU.inBroadcast, GU.guestCheck], GU.removeLastSong, '[NUMBER] - Remove the last song of the queue.'
+    ],
+    'fetchByName': [
+        [GU.inBroadcast, GU.guestCheck], GU.fetchByName, '[FILTER] - Place the first song of the queue that matches FILTER at the beginning of the queue.'
+    ],
+    'fetchLast': [
+        [GU.inBroadcast, GU.guestCheck], GU.fetchLast, '- Bring the last song at the beginning of the queue.'
+    ],
+    'previewRemoveByName': [
+        [GU.inBroadcast, GU.guestCheck], GU.previewRemoveByName, '[FILTER] - Get the list of songs that will be remove when calling \'removeByName\' with the same FILTER.'
+    ],
+    'removeByName': [
+        [GU.inBroadcast, GU.guestCheck], GU.removeByName, '[FILTER] - Remove all songs that matches the filter. To clear queue use \'/removeByName allSongs\'. Use the \'previewRemoveByName\' first.'
+    ],
+    'showPlaylist': [
+        [GU.inBroadcast, GU.guestCheck], GU.showPlaylist, '[FILTER] - Get the ID of a particular playlist.'
+    ],
+    'playPlaylist': [
+        [GU.inBroadcast, GU.guestCheck], GU.playPlaylist, 'PLAYLISTID - Play the playlist from the ID given by \'showPlaylist\'.'
+    ],
+    'skip': [
+        [GU.inBroadcast, GU.guestCheck], GU.skip, '- Skip the current song.'
+    ],
+    'shuffle': [
+        [GU.inBroadcast, GU.guestCheck], GU.shuffle, '- Shuffle the current queue.'
+    ],
+    'peek': [
+        [GU.inBroadcast, GU.guestOrWhite], GU.previewSongs, '[NUMBER] - Preview the songs that are in the queue.'
+    ],
+    'getPlaylist': [
+        [GU.inBroadcast, GU.guestCheck], GU.getPlaylist, '[NUMBER] - Universal Playlist Loader. Usage: /getPlaylist [Playlist ID], see: http://goo.gl/46OwkC'
+    ],
+};
 actionTable = {
-    'help':                 [[GU.inBroadcast],                          GU.help,                 '- Display this help.'],
-    'ping':                 [[GU.inBroadcast],                          GU.ping,                 '- Ping the BOT.'],
-    'addToCollection':      [[GU.inBroadcast, GU.strictWhiteListCheck], GU.addToCollection,      '- Add this song to the collection.'],
-    'removeFromCollection': [[GU.inBroadcast, GU.strictWhiteListCheck], GU.removeFromCollection, '- Remove this song from the collection.'],
-    'removeNext':           [[GU.inBroadcast, GU.guestCheck],           GU.removeNextSong,       '- Remove the next song in the queue.'],
-    'removeLast':           [[GU.inBroadcast, GU.guestCheck],           GU.removeLastSong,       '- Remove the last song of the queue.'],
-    'fetchByName':          [[GU.inBroadcast, GU.guestCheck],           GU.fetchByName,          '[FILTER] - Place the first song of the queue that matches FILTER at the beginning of the queue.'],
-    'fetchLast':            [[GU.inBroadcast, GU.guestCheck],           GU.fetchLast,            '- Bring the last song(s) to the front of the queue.'],
-    'previewRemoveByName':  [[GU.inBroadcast, GU.guestCheck],           GU.previewRemoveByName,  '[FILTER] - Get the list of songs that will be remove when calling \'removeByName\' with the same FILTER.'],
-    'removeByName':         [[GU.inBroadcast, GU.guestCheck],           GU.removeByName,         '[FILTER] - Remove all songs that matches the filter. To clear queue use \'/removeByName allSongs\'. Use the \'previewRemoveByName\' first.'],
-    'showPlaylist':         [[GU.inBroadcast, GU.guestCheck],           GU.showPlaylist,         '[FILTER] - Get the ID of a particular playlist.'],
-    'playPlaylist':         [[GU.inBroadcast, GU.guestCheck],           GU.playPlaylist,         'PLAYLISTID - Play the playlist from the ID given by \'showPlaylist\'.'],
-    'skip':                 [[GU.inBroadcast, GU.guestCheck],           GU.skip,                 '- Skip the current song.'],
-    'shuffle':              [[GU.inBroadcast, GU.guestCheck],           GU.shuffle,              '- Shuffle the current queue.'],
-    'peek':                 [[GU.inBroadcast, GU.whiteListCheck],       GU.previewSongs,         '[NUMBER] - Preview the songs that are in the queue.'],
-    'guest':                [[GU.inBroadcast, GU.whiteListCheck],       GU.guest,                '- Toogle your guest status.'],
-    'rules':                [[GU.inBroadcast],                          GU.rules,                '- Rules of the broadcast'],
-    'getPlaylist':          [[GU.inBroadcast, GU.guestCheck],           GU.getPlaylist,          '[NUMBER] - Universal Playlist Loader. Usage: /getPlaylist [Playlist ID], see: http://goo.gl/46OwkC'],
-    'about':                [[GU.inBroadcast],                          GU.about,                '- About this software.'],
-    'roll':                 [[GU.inBroadcast],                          GU.roll,                 '- Test your luck throwing the magical dice. If no parameter is given, the dice will roll from 1-100']
+    'help': [
+        [GU.inBroadcast], GU.help, '- Display this help.'
+    ],
+    'ping': [
+        [GU.inBroadcast], GU.ping, '- Ping the BOT.'
+    ],
+    'whoamI': [
+        [GU.inBroadcast], GU.whoamI, '- Return User Name & ID.'
+    ],
+    'ask': [
+        [GU.inBroadcast], GU.ask, '[QUESTION] - EGSA-tan will answer a Yes or No question.'
+    ],
+    'rules': [
+        [GU.inBroadcast], GU.rules, '- Rules of the broadcast'
+    ],
+    'roll': [
+        [GU.inBroadcast], GU.roll, '[NUMBER] - Test your luck throwing the magical dice. If no number of sides is given, the dice will roll from 1-100'
+    ],
+    'fact': [
+        [GU.inBroadcast], GU.fact, '- Display a random fact.'
+    ],
+    'cast': [
+        [GU.inBroadcast], GU.cast, '[SPELL] [TARGET]- (Work In Progress) Simple roleplaying command. Current spells are: frostbolt, fireball and dongerstrike.'
+    ],
+    'about': [
+        [GU.inBroadcast], GU.about, '- About this software.'
+    ]
 };
 
-(function()
-{
-    var callback_start = function()
-    {
+(function() {
+    var callback_start = function() {
         onbeforeunload = null;
-        if (GUParams.userReq != '' && GUParams.passReq != '')
-        {
-            GS.Services.API.logoutUser().then(function(){
-                GS.Services.API.authenticateUser(GUParams.userReq, GUParams.passReq).then(function(user) { window.location = "http://broadcast-nologin/";});
+        if (GUParams.userReq != '' && GUParams.passReq != '') {
+            GS.Services.API.logoutUser().then(function() {
+                GS.Services.API.authenticateUser(GUParams.userReq, GUParams.passReq).then(function(user) {
+                    window.location = "http://broadcast-nologin/";
+                });
             });
-        }
-        else
+        } else
             GU.broadcast();
     }
-    var init_check = function ()
-    {
+    var init_check = function() {
         try {
             GS.ready.done(callback_start);
-        } catch(e) {
+        } catch (e) {
             setTimeout(init_check, 100);
         }
     }
