@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
 
-  "name": "EGSA Broadcast Bot",
-  "short_name": "EGSA Bot",
+  "name": "EGSA Broadcast Bot - RPG Version",
+  "short_name": "EGSA Bot - RPG",
   "description": "Create or takeover a broadcast with this bot, then enjoy what the bot can offer!",
   "version": "1.0.1",
   "icons": { "16": "icon16.png",
