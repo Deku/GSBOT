@@ -27,7 +27,9 @@ RPG.Testing = {
 		'corruption' : new Spell('Corruption', 9, 40, 45, 1),
 		'drainlife' : new Spell('Drain Life', 17, 50, 55, 1),
 		'deathcoil' : new Spell('Death Coil', 23, 50, 90, 1),
-		'searingpain' : new Spell('Searing Pain', 8, 59, 71, 1)
+		'searingpain' : new Spell('Searing Pain', 8, 59, 71, 1),
+		'dongerstrike' : new Spell('Donger Strike', 1, 30, 70, 1),
+		'sexiness' : new Spell('Sexiness', 1, 1, 1, 1)
 	}
 }
 

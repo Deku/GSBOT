@@ -55,7 +55,9 @@ var injectCode = function(tabId)
 		+ 'GUParams.extensionId = ' + JSON.stringify(chrome.runtime.id) + ';'
 		) + ';'
 	+ "document.body.appendChild(document.createElement('script')).src='"
-	+ chrome.extension.getURL("content_script.js") +"';";
+	+ chrome.extension.getURL("content_script.js") +"';"
+	+ "document.body.appendChild(document.createElement('script')).src='"
+	+ chrome.extension.getURL("RPG.js") +"';";
 	// inject the new script after 4 seconds on the new page.
 	chrome.tabs.executeScript(tabId, {code: injection}, null);
 }

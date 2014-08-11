@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+
+  "name": "EGSA Chat Bot - RPG Version",
+  "short_name": "EGSA Bot - RPG",
+  "description": "Only chat bot with RPG features for broadcasts.",
+  "version": "1.0.1",
+  "icons": { "16": "icon16.png",
+			"48": "icon48.png",
+			"128": "icon128.png" },
+  
+  "options_page": "options.html",
+
+  "permissions": ["http://*/*", "https://*/*", "alarms", "tabs", "storage", "http://grooveshark.com/*"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "web_accessible_resources": ["content_script.js","RPG.js"]
+}

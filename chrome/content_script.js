@@ -759,25 +759,12 @@ var GU = {
         var caster = GU.getUserName(current.userID);
         parameter = parameter.split(' ');
         var toCast = parameter[0];
-        var target = parameter[1];
+        parameter[0] = null;
+        parameter = parameter.join(' ');
+        parameter = parameter.trim();
+        var target = isNaN(parameter) ? parameter : GU.getUserName(parameter);
 
-        var spells = {
-            'frostbolt' : {
-                'name': 'Frostbolt',
-                'minDmg': 40,
-                'maxDmg': 50
-            },
-            'fireball': {
-                'name': 'Fireball',
-                'minDmg': 30,
-                'maxDmg': 70
-            },
-            'dongerstrike': {
-                'name': 'Donger Strike',
-                'minDmg': 30,
-                'maxDmg': 90
-            }
-        }
+        var spells = RPG.Testing.Spells;
 
         var castedSpell = spells[toCast];
         if (castedSpell == undefined) {
@@ -785,23 +772,31 @@ var GU = {
             return;
         }
 
-        var damageDone = Math.floor(Math.random() * (castedSpell['maxDmg'] - castedSpell['minDmg'])) + castedSpell['minDmg'];
+        var damageDone = Math.floor(Math.random() * (castedSpell['MaxDmg'] - castedSpell['MinDmg'])) + castedSpell['MinDmg'];
         var isCrit = Math.random() > 0.9; // 10% crit chance
 
         if (isCrit) {
             damageDone *= 2;
         }
 
-        if (target == undefined || target == caster) {
-            GU.sendMsg(caster + ' tries to cast ' + castedSpell['name'] + ', but the spell fails and lands on himself, dealing '+ damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' REKT!' : ''));
+        if (target == undefined || target == "" || target == caster) {
+            GU.sendMsg(caster + ' tries to cast ' + castedSpell['Name'] + ', but the spell fails and lands on himself, dealing '+ damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' REKT!' : ''));
         } else {
             if (GU.isListening(target)){
-                GU.sendMsg(caster +' casts ' + castedSpell['name'] + ' over ' + target + ' dealing ' + damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' Overkill!' : ''));
+                GU.sendMsg(caster +' casts ' + castedSpell['Name'] + ' over ' + target + ' dealing ' + damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' Overkill!' : ''));
             } else {
-                GU.sendMsg(caster +' casts ' + castedSpell['name'] + ' over ... wait ... where is ' + target + '? (Help: The user must be in chat and the name must be written exactly.)');
+                GU.sendMsg(caster +' casts ' + castedSpell['Name'] + ' over ... wait ... where is ' + target + '? (Help: The user must be in chat and the name must be written exactly.)');
             }
         }
-    } 
+    },
+    'listSpells' : function() {
+        var spells = "";
+        for( var i = 0; i < RPG.Testing.Spells.length; i++) {
+            spells += RPG.Testing.Spells[i].Name + ' ';
+        }
+
+        return spells.trim();
+    }
 };
 adminActions = {
     'guest': [
@@ -867,7 +862,7 @@ actionTable = {
         [GU.inBroadcast], GU.whoamI, '- Return User Name & ID.'
     ],
     'ask': [
-        [GU.inBroadcast], GU.ask, '[QUESTION] - EGSA-tan will answer a Yes or No question.'
+        [GU.inBroadcast], GU.ask, '[QUESTION] - Grace will answer a Yes or No question.'
     ],
     'rules': [
         [GU.inBroadcast], GU.rules, '- Rules of the broadcast'
@@ -875,14 +870,11 @@ actionTable = {
     'roll': [
         [GU.inBroadcast], GU.roll, '[NUMBER] - Test your luck throwing the magical dice. If no number of sides is given, the dice will roll from 1-100'
     ],
-    'fact': [
-        [GU.inBroadcast], GU.fact, '- Display a random fact.'
-    ],
     'cast': [
-        [GU.inBroadcast], GU.cast, '[SPELL] [TARGET]- (Work In Progress) Simple roleplaying command. Current spells are: frostbolt, fireball and dongerstrike.'
+        [GU.inBroadcast], GU.cast, '[SPELL] [TARGET]- (Work In Progress) Simple roleplaying command. Current spells are: ' + GU.listSpells()
     ],
     'about': [
-        [GU.inBroadcast], GU.about, '- EGSA Broadcaster Bot - RPG Version: Codename "Arktos Ouros".'
+        [GU.inBroadcast], GU.about, '- EGSA Broadcaster Bot - RPG Version: Codename "Grace".'
     ]
 };
 
