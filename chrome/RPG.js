@@ -1,57 +1,36 @@
 var RPG = RPG || {};
 
-RPG.Dungeon = {
-	PlayerList : {},
-	PlayerQueue : {}
-}
+RPG.PlayerList = {};
 
 RPG.Shop = {
 	ItemList : {},
 	ItemPrices : {}
-}
+};
 
 RPG.LevelingSystem = {
 	MinLevel : 1,
 	MaxLevel : 60,
+	MaxExp : 100000,
 	ExpCurve : 1,
 
-	isLevelUp : function() {}
+	isLevelUp : function(exp, currLvl) {
+		var nextLvl = int.Parse(currLvl) + 1;
+		var neededExp = (this.MaxExp / (this.MaxLevel ^ (this.ExpCurve + 1))) * (nextLvl ^ (this.ExpCurve + 1));
 
-}
-
-RPG.Testing = {
-	Spells : {
-		'fireball' : new Spell('Fireball', 8, 53, 73, 1),
-		'arcanemissiles' : new Spell('Arcane Missiles', 31, 24, 30, 1),
-		'frostbolt' : new Spell('Frostbolt', 6, 18, 20, 1),
-		'corruption' : new Spell('Corruption', 9, 40, 45, 1),
-		'drainlife' : new Spell('Drain Life', 17, 50, 55, 1),
-		'deathcoil' : new Spell('Death Coil', 23, 50, 90, 1),
-		'searingpain' : new Spell('Searing Pain', 8, 59, 71, 1)
+		if (exp >= neededExp) {
+			return true;
+		} else {
+			return false;
+		}
+	},
+	isMaxLevel : function(currLvl) {
+		if (currLvl < this.MaxLevel) {
+			return false;
+		} else if (currLvl >= this.MaxLevel) {
+			return	true;
+		}
 	}
-}
+};
 
-function Player() {
-	this.Name = '';
-	this.RPGClass = {};
-	this.Level = 1;
-	this.MaxHP = 1;
-	this.CurrentHP = 1;
-	this.Money = 0;
-}
 
-function RPGClass() {
-	this.Name;
-	this.BaseHP;
-	this.BaseResource;
-	this.ResourceName;
-	this.Spells;
-}
 
-function Spell(name, resource, mindmg, maxdmg, minlvl) {
-	this.Name = name;
-	this.Resource = resource;
-	this.MinDmg = mindmg;
-	this.MaxDmg = maxdmg;
-	this.MinLevel = minlvl;
-}

@@ -32,6 +32,7 @@ var forcePlay = false;
 var playingRandom = false;
 var followingList = [];
 var adminActions = {};
+var alreadySaluted = {};
 
 // GroovesharkUtils
 var GU = {
@@ -83,7 +84,7 @@ var GU = {
         var maxDescriptionLength = 145;
 
         var defName = attributes.Description;
-        defName = defName.substr(0, defName.indexOf(GUParams.prefixRename)) + GUParams.prefixRename + ' [EGSA-tan] ';
+        defName = defName.substr(0, defName.indexOf(GUParams.prefixRename)) + GUParams.prefixRename + ' [EGSA] Grace Bot ';
         if (playingRandom) {
             defName += 'Playing from collection';
         } else {
@@ -131,6 +132,12 @@ var GU = {
             GU.doParseMessage(t);
         };
 
+        // Overload handlejoin
+        var handleBroadcastJoin = GS.Services.SWF.handleBroadcastListenerJoined;
+        GS.Services.SWF.handleBroadcastListenerJoined = function(e, t) {
+            handleBroadcastJoin(e, t);
+            GU.doSalute(t);
+        };
     },    
 
 
@@ -528,21 +535,21 @@ var GU = {
             'Without a doubt',
             'Ask your mom.',
             'Yes definitely',
-            'Outlook good',
+            'Of course, sweetie',
             'YES! Definitely. maybe...',
             'Don\'t count on it',
             'My reply is no',
-            'The voices tell me to tell you \"Yes.\" They also say that I should gouge out your eyes with my nose…',
-            'Outlook not so good',
+            'Yes, yes, yes!',
+            'The answer is yes if you kiss me first (づ ￣ 3 ￣)づ',
             'Most likely',
             'You may rely on it',
             'Dafuq?',
             'It is certain',
             'No',
             'LOL',
-            'If I told you, I\'d have to kill you.',
+            'As many other things, that\'s a secret',
             'Ask again later',
-            '404 Error',
+            'Do I wear panties?',
             'Sorry, I wasn\'t listening.',
             'Reply hazy try again',
             'Please seek professional help.',
@@ -569,7 +576,7 @@ var GU = {
     },
     'doParseMessage': function(current) {
         var string = current.data;
-        var regexp = RegExp('^/([A-z0-9]*)([ ]+([A-z0-9 ,-?\!.]+))?$');
+        var regexp = RegExp('^/([A-z0-9]*)([ ]+(.+))?$'); // @author: karb0n13
         var regResult = regexp.exec(string);
         if (regResult != null) {
             var currentAction = actionTable[regResult[1]];
@@ -586,21 +593,23 @@ var GU = {
             }
         }
     },
-    'fact': function() {
-        var textHTTP;
-        var textFile = '/data/facts.txt';
-        textHTTP = new XMLHttpRequest();
-        textHTTP.onreadystatechange=function(){
-            if (textHTTP.readyState==4 && textHTTP.status==200){
-                //console.log(textHTTP.responseText);
-                var fileContentLines = textHTTP.responseText.split('\n');
-                    var randomLineIndex = Math.floor((Math.random() * fileContentLines.length) + 1);
-                    var randomLine = fileContentLines[randomLineIndex];
-                    GU.sendMsg(randomLine);
+    'doSalute' : function(current) {
+        if (current.extra.n == undefined) {
+            return;
+        }
+        
+        var user = current.extra.n;
+
+        if (Object.keys(alreadySaluted).length > 0) {
+            for (var k in alreadySaluted) {
+                if (alreadySaluted[k] == user) {
+                    return;
+                }
             }
         }
-        textHTTP.open('GET', 'chrome-extension://' + GUParams.extensionId + textFile, true);
-        textHTTP.send();
+
+        GU.sendMsg('Hi ' + user + '! (づ ￣ 3 ￣)づ ♥');
+        alreadySaluted[Object.keys(alreadySaluted).length] = user;
     },
     'getUserName': function(uID){
         var uName = '';
@@ -608,6 +617,19 @@ var GU = {
             uName = u.get('Name');
         })
         return uName;
+    },
+    'getUserID' : function(uName) {
+        var uID = 0;
+
+        if (uName != undefined) {
+            GS.getCurrentBroadcast().attributes.listeners.models.some(function(elem) {
+                if (elem.attributes.Name == uName) {
+                    uID = elem.attributes.UserID;
+                }
+            });
+        }
+
+        return uID;
     },
     'help': function(message, parameter) {
         if (parameter != undefined) {
@@ -694,7 +716,7 @@ var GU = {
             max = number;
             if (number > 2 && number < 10001) {
                 var roll = Math.floor(Math.random() * max) + min;
-                GU.sendMsg("[Roll: " + min + " - " + max + " ] EGSA-tan summons a magical dice. " 
+                GU.sendMsg("[Roll: " + min + " - " + max + " ] Grace Bot summons a magical dice. " 
                     + uName + " throws it and gets a " + roll 
                     + (roll > 9000 ? ". It's over 9000!" : "."));
             } else {
@@ -719,7 +741,7 @@ var GU = {
                             coin = "Tails";
                             break;
                     }
-                    GU.sendMsg("[Roll] EGSA-tan flips a coin. The coin lands on " + coin + "!");
+                    GU.sendMsg("[Roll] Grace Bot flips a coin. The coin lands on " + coin + "!");
                 }
                 // Avoid using big number, because it gets out of the chat window
                 if (number >= 10001) {
@@ -756,46 +778,53 @@ var GU = {
             return;
         }
 
-        var caster = GU.getUserName(current.userID);
+        // Save first parameter. It could be a spell name or help request
         parameter = parameter.split(' ');
-        var toCast = parameter[0];
+        var param1 = parameter[0];
+        // Delete first parameter and take all what's left as second parameter (target)
         parameter[0] = null;
         parameter = parameter.join(' ');
         parameter = parameter.trim();
-        var target = isNaN(parameter) ? parameter : GU.getUserName(parameter);
+        var targetID = isNaN(parameter) && parameter != '' ? GU.getUserID(parameter) : parameter;
+        var userID = current.userID;
 
-        var spells = RPG.Testing.Spells;
-
-        var castedSpell = spells[toCast];
-        if (castedSpell == undefined) {
-            GU.sendMsg('Spell not found. Are you sure that you know magic?');
+        if (param1 == '-help') {
+            var currentAction = actionTable['cast'];
+            if (currentAction instanceof Array) {
+                GU.sendMsg('Help: /cast ' + currentAction[2]);
+            }
             return;
         }
 
-        var damageDone = Math.floor(Math.random() * (castedSpell['MaxDmg'] - castedSpell['MinDmg'])) + castedSpell['MinDmg'];
-        var isCrit = Math.random() > 0.9; // 10% crit chance
-
-        if (isCrit) {
-            damageDone *= 2;
+        if (RPG.PlayerList[userID] == undefined || !RPG.PlayerList[userID].hasClass()) {
+            GU.sendMsg('Hey kid! You know nothing about fighting! Go back to the Academy and choose a class.');
+            return;
         }
 
-        if (target == undefined || target == "" || target == caster) {
-            GU.sendMsg(caster + ' tries to cast ' + castedSpell['Name'] + ', but the spell fails and lands on himself, dealing '+ damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' REKT!' : ''));
-        } else {
-            if (GU.isListening(target)){
-                GU.sendMsg(caster +' casts ' + castedSpell['Name'] + ' over ' + target + ' dealing ' + damageDone + ' damage.' + (isCrit ? ' Critical strike!' : '') + (damageDone > 100 ? ' Overkill!' : ''));
-            } else {
-                GU.sendMsg(caster +' casts ' + castedSpell['Name'] + ' over ... wait ... where is ' + target + '? (Help: The user must be in chat and the name must be written exactly.)');
-            }
-        }
+        RPG.SpellManager.ExecuteSpell(param1, userID, targetID);
     },
-    'listSpells' : function() {
-        var spells = "";
-        for( var i = 0; i < RPG.Testing.Spells.length; i++) {
-            spells += RPG.Testing.Spells[i].Name + ' ';
+    'class' : function(current, parameter) {
+        var sender = current.userID;
+        parameter = parameter.split(' ');
+        var action = parameter[0];
+
+        if (action == 'choose') {
+            var newClass = parameter[1];
+            RPG.PlayerManager.ModifyClass(sender, newClass);
+            return;
+        } else if (action == 'reset') {
+            RPG.PlayerManager.ResetClass(sender); 
+            return;
+        } else if (action == 'list') {
+            var classList = '';
+            for (var i = 0; i <= RPG.Classes.length; i++) {
+                classList += RPG.Classes[i] + ', ';
+            }
+            GU.sendMsg('Available classes are: ' + classList);
+            return;
         }
 
-        return spells.trim();
+        GU.sendMsg('Couldn\'t understand what you needed. Available actions are "choose", "reset" and "list".');
     }
 };
 adminActions = {
@@ -871,10 +900,13 @@ actionTable = {
         [GU.inBroadcast], GU.roll, '[NUMBER] - Test your luck throwing the magical dice. If no number of sides is given, the dice will roll from 1-100'
     ],
     'cast': [
-        [GU.inBroadcast], GU.cast, '[SPELL] [TARGET]- (Work In Progress) Simple roleplaying command. Current spells are: ' + GU.listSpells()
+        [GU.inBroadcast], GU.cast, '[SPELL] [TARGET]- (Work In Progress) Simple roleplaying command. Current spells are: fireball, arcanemissiles, frostbolt, corruption, drainlife, deathcoil, searingpain, dongerstrike, sexiness'
     ],
     'about': [
         [GU.inBroadcast], GU.about, '- EGSA Broadcaster Bot - RPG Version: Codename "Grace".'
+    ],
+    'class': [
+        [GU.inBroadcast], GU.class, '- Class management command. Available actions are: choose, reset and list.'
     ]
 };
 

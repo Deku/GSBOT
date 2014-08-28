@@ -16,5 +16,5 @@
     "scripts": ["background.js"],
     "persistent": false
   },
-  "web_accessible_resources": ["content_script.js","RPG.js"]
+  "web_accessible_resources": ["content_script.js","RPG.js","RPG/RPGDB.js","RPG/RPGDefines.js","RPG/RPGManagers.js"]
 }

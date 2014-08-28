@@ -57,7 +57,13 @@ var injectCode = function(tabId)
 	+ "document.body.appendChild(document.createElement('script')).src='"
 	+ chrome.extension.getURL("content_script.js") +"';"
 	+ "document.body.appendChild(document.createElement('script')).src='"
-	+ chrome.extension.getURL("RPG.js") +"';";
+	+ chrome.extension.getURL("RPG.js") +"';"
+	+ "document.body.appendChild(document.createElement('script')).src='"
+	+ chrome.extension.getURL("RPG/RPGDB.js") +"';"
+	+ "document.body.appendChild(document.createElement('script')).src='"
+	+ chrome.extension.getURL("RPG/RPGDefines.js") +"';"
+	+ "document.body.appendChild(document.createElement('script')).src='"
+	+ chrome.extension.getURL("RPG/RPGManagers.js") +"';";
 	// inject the new script after 4 seconds on the new page.
 	chrome.tabs.executeScript(tabId, {code: injection}, null);
 }
